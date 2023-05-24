@@ -226,6 +226,14 @@ public class MemoCalendar extends CalendarDataManager{ // CalendarDataManager의
         selectedDate = new JLabel("<Html><font size=3>"+(today.get(Calendar.MONTH)+1)+"/"+today.get(Calendar.DAY_OF_MONTH)+"/"+today.get(Calendar.YEAR)+"&nbsp;(Today)</html>", SwingConstants.LEFT);
         selectedDate.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 0));
 
+        timeTableBut = new JButton("시간표"); //시간표 버튼
+        timeTableBut.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showTimetableView();
+            }
+        });
+        
         memoPanel=new JPanel();
         memoPanel.setBorder(BorderFactory.createTitledBorder("메모"));
         memoArea = new JTextArea();
@@ -420,5 +428,14 @@ public class MemoCalendar extends CalendarDataManager{ // CalendarDataManager의
 
             readMemo();
         }
+    }
+    private void showTimetableView()  {
+        TimetableView timetableView = new TimetableView();
+        JFrame timetableFrame = new JFrame("시간표");
+        timetableFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        timetableFrame.setSize(600*2, 400*2);
+        timetableFrame.setLayout(new BorderLayout());
+        timetableFrame.add(timetableView, BorderLayout.CENTER);
+        timetableFrame.setVisible(true);
     }
 }
