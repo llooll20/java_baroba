@@ -5,10 +5,16 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener; //반응형
 import java.io.*;
+import java.rmi.AlreadyBoundException;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import javax.swing.*;
-import TimetableView;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 
 class CalendarDataManager{ // 6*7배열에 나타낼 달력 값을 구하는 class
     static final int CAL_WIDTH = 7; // 달력의 행, 일주일이므로 7
@@ -69,7 +75,7 @@ class CalendarDataManager{ // 6*7배열에 나타낼 달력 값을 구하는 cla
     }
 }
 
-public class MemoCalendar extends CalendarDataManager{ // CalendarDataManager의 GUI + 메모기능 + 시계
+public class MemoCalendar extends CalendarDataManager { // CalendarDataManager의 GUI + 메모기능 + 시계
     // 창 구성요소와 배치도
     JFrame mainFrame; //달력 프로그램 틀
     //프로그램 아이콘
@@ -103,7 +109,7 @@ public class MemoCalendar extends CalendarDataManager{ // CalendarDataManager의
     JPanel frameBottomPanel; // 하단 패널, 메세지 나옴
     JLabel bottomInfo = new JLabel(""); // 시작할때 나오는 문구
     //상수, 메세지
-    final String WEEK_DAY_NAME[] = { "일", "월", "화", "수", "목", "금", "토" };
+    final String WEEK_DAY_NAME[] = {"일", "월", "화", "수", "목", "금", "토"};
     final String title = "바로봐 1.0";
     final String SaveButMsg1 = "를 MemoData폴더에 저장하였습니다.";
     final String SaveButMsg2 = "메모를 먼저 작성해 주세요.";
@@ -113,24 +119,25 @@ public class MemoCalendar extends CalendarDataManager{ // CalendarDataManager의
     final String DelButMsg3 = "<html><font color=red>ERROR : 파일 삭제 실패</html>";
     final String ClrButMsg1 = "입력된 메모를 비웠습니다.";
 
-    public static void main(String[] args){
-        SwingUtilities.invokeLater(new Runnable(){
-            public void run(){
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
                 new MemoCalendar();
             }
         });
     }
-    public MemoCalendar(){ //구성요소 순으로 정렬되어 있음. 각 판넬 사이에 빈줄로 구별
+
+    public MemoCalendar() { //구성요소 순으로 정렬되어 있음. 각 판넬 사이에 빈줄로 구별
 
         mainFrame = new JFrame(title); //
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); //프레임이 닫히면 종료
-        mainFrame.setSize(1400,800);
+        mainFrame.setSize(1400, 800);
         mainFrame.setLocationRelativeTo(null);
         mainFrame.setResizable(false);
-        try{
-            UIManager.setLookAndFeel ("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");//LookAndFeel Windows 스타일 적용
-            SwingUtilities.updateComponentTreeUI(mainFrame) ;
-        }catch(Exception e){
+        try {
+            UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");//LookAndFeel Windows 스타일 적용
+            SwingUtilities.updateComponentTreeUI(mainFrame);
+        } catch (Exception e) {
             bottomInfo.setText("ERROR : LookAndFeel setting failed");
         }
 
@@ -138,14 +145,14 @@ public class MemoCalendar extends CalendarDataManager{ // CalendarDataManager의
         todayBut = new JButton("오늘");
         todayBut.setToolTipText("오늘");
         todayBut.addActionListener(lForCalOpButtons);
-        todayLab = new JLabel(today.get(Calendar.YEAR)+"년"+today.get(Calendar.MONTH)+"월"+today.get(Calendar.DAY_OF_MONTH)+"일");
+        todayLab = new JLabel(today.get(Calendar.YEAR) + "년" + today.get(Calendar.MONTH) + "월" + today.get(Calendar.DAY_OF_MONTH) + "일");
         lYearBut = new JButton("작년");
         lYearBut.setToolTipText("Previous Year");
         lYearBut.addActionListener(lForCalOpButtons);
         lMonBut = new JButton("저번달");
         lMonBut.setToolTipText("Previous Month");
         lMonBut.addActionListener(lForCalOpButtons);
-        curMMYYYYLab = new JLabel("<html><table width=100><tr><th><font size=4>"+calYear+"년"+((calMonth+1)<10?"&nbsp;":"")+(calMonth+1)+"월"+"</th></tr></table></html>");
+        curMMYYYYLab = new JLabel("<html><table width=100><tr><th><font size=4>" + calYear + "년" + ((calMonth + 1) < 10 ? "&nbsp;" : "") + (calMonth + 1) + "월" + "</th></tr></table></html>");
         nMonBut = new JButton("다음달");
         nMonBut.setToolTipText("Next Month");
         nMonBut.addActionListener(lForCalOpButtons);
@@ -160,53 +167,53 @@ public class MemoCalendar extends CalendarDataManager{ // CalendarDataManager의
         calOpGC.gridheight = 1;
         calOpGC.weightx = 1;
         calOpGC.weighty = 1;
-        calOpGC.insets = new Insets(5,5,0,0);
+        calOpGC.insets = new Insets(5, 5, 0, 0);
         calOpGC.anchor = GridBagConstraints.WEST;
         calOpGC.fill = GridBagConstraints.NONE;
-        calOpPanel.add(todayBut,calOpGC);
+        calOpPanel.add(todayBut, calOpGC);
         calOpGC.gridwidth = 3;
         calOpGC.gridx = 2;
         calOpGC.gridy = 1;
-        calOpPanel.add(todayLab,calOpGC);
+        calOpPanel.add(todayLab, calOpGC);
         calOpGC.anchor = GridBagConstraints.CENTER;
         calOpGC.gridwidth = 1;
         calOpGC.gridx = 1;
         calOpGC.gridy = 2;
-        calOpPanel.add(lYearBut,calOpGC);
+        calOpPanel.add(lYearBut, calOpGC);
         calOpGC.gridwidth = 1;
         calOpGC.gridx = 2;
         calOpGC.gridy = 2;
-        calOpPanel.add(lMonBut,calOpGC);
+        calOpPanel.add(lMonBut, calOpGC);
         calOpGC.gridwidth = 2;
         calOpGC.gridx = 3;
         calOpGC.gridy = 2;
-        calOpPanel.add(curMMYYYYLab,calOpGC);
+        calOpPanel.add(curMMYYYYLab, calOpGC);
         calOpGC.gridwidth = 1;
         calOpGC.gridx = 5;
         calOpGC.gridy = 2;
-        calOpPanel.add(nMonBut,calOpGC);
+        calOpPanel.add(nMonBut, calOpGC);
         calOpGC.gridwidth = 1;
         calOpGC.gridx = 6;
         calOpGC.gridy = 2;
-        calOpPanel.add(nYearBut,calOpGC);
+        calOpPanel.add(nYearBut, calOpGC);
 
-        calPanel=new JPanel();
+        calPanel = new JPanel();
         weekDaysName = new JButton[7];
-        for(int i=0 ; i<CAL_WIDTH ; i++){
-            weekDaysName[i]=new JButton(WEEK_DAY_NAME[i]);
+        for (int i = 0; i < CAL_WIDTH; i++) {
+            weekDaysName[i] = new JButton(WEEK_DAY_NAME[i]);
             weekDaysName[i].setBorderPainted(false);
             weekDaysName[i].setContentAreaFilled(false);
             weekDaysName[i].setForeground(Color.WHITE);
-            if(i == 0) weekDaysName[i].setBackground(new Color(200, 50, 50));
+            if (i == 0) weekDaysName[i].setBackground(new Color(200, 50, 50));
             else if (i == 6) weekDaysName[i].setBackground(new Color(50, 100, 200));
             else weekDaysName[i].setBackground(new Color(150, 150, 150));
             weekDaysName[i].setOpaque(true);
             weekDaysName[i].setFocusPainted(false);
             calPanel.add(weekDaysName[i]);
         }
-        for(int i=0 ; i<CAL_HEIGHT ; i++){
-            for(int j=0 ; j<CAL_WIDTH ; j++){
-                dateButs[i][j]=new JButton();
+        for (int i = 0; i < CAL_HEIGHT; i++) {
+            for (int j = 0; j < CAL_WIDTH; j++) {
+                dateButs[i][j] = new JButton();
                 dateButs[i][j].setBorderPainted(false);
                 dateButs[i][j].setContentAreaFilled(false);
                 dateButs[i][j].setBackground(Color.WHITE);
@@ -215,7 +222,7 @@ public class MemoCalendar extends CalendarDataManager{ // CalendarDataManager의
                 calPanel.add(dateButs[i][j]);
             }
         }
-        calPanel.setLayout(new GridLayout(0,7,2,2));
+        calPanel.setLayout(new GridLayout(0, 7, 2, 2));
         calPanel.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
         showCal(); // 달력을 표시
 
@@ -224,42 +231,41 @@ public class MemoCalendar extends CalendarDataManager{ // CalendarDataManager의
         infoClock = new JLabel("", SwingConstants.RIGHT);
         infoClock.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         infoPanel.add(infoClock, BorderLayout.NORTH);
-        selectedDate = new JLabel("<Html><font size=3>"+(today.get(Calendar.MONTH)+1)+"/"+today.get(Calendar.DAY_OF_MONTH)+"/"+today.get(Calendar.YEAR)+"&nbsp;(Today)</html>", SwingConstants.LEFT);
+        selectedDate = new JLabel("<Html><font size=3>" + (today.get(Calendar.MONTH) + 1) + "/" + today.get(Calendar.DAY_OF_MONTH) + "/" + today.get(Calendar.YEAR) + "&nbsp;(Today)</html>", SwingConstants.LEFT);
         selectedDate.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 0));
 
-        timeTableBut = new JButton("시간표"); //시간표 버튼
+        JButton timeTableBut = new JButton("시간표"); //시간표 버튼
         timeTableBut.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 showTimetableView();
             }
         });
-        
-        memoPanel=new JPanel();
+
+        memoPanel = new JPanel();
         memoPanel.setBorder(BorderFactory.createTitledBorder("메모"));
         memoArea = new JTextArea();
         memoArea.setLineWrap(true);
         memoArea.setWrapStyleWord(true);
-        memoAreaSP = new JScrollPane(memoArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        memoAreaSP = new JScrollPane(memoArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         readMemo();
 
-        memoSubPanel=new JPanel();
+        memoSubPanel = new JPanel();
         saveBut = new JButton("저장");
-        saveBut.addActionListener(new ActionListener(){
+        saveBut.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent arg0) {
                 try {
-                    File f= new File("MemoData");
-                    if(!f.isDirectory()) f.mkdir();
+                    File f = new File("MemoData");
+                    if (!f.isDirectory()) f.mkdir();
 
                     String memo = memoArea.getText();
-                    if(memo.length()>0){
-                        BufferedWriter out = new BufferedWriter(new FileWriter("MemoData/"+calYear+((calMonth+1)<10?"0":"")+(calMonth+1)+(calDayOfMon<10?"0":"")+calDayOfMon+".txt"));
+                    if (memo.length() > 0) {
+                        BufferedWriter out = new BufferedWriter(new FileWriter("MemoData/" + calYear + ((calMonth + 1) < 10 ? "0" : "") + (calMonth + 1) + (calDayOfMon < 10 ? "0" : "") + calDayOfMon + ".txt"));
                         String str = memoArea.getText();
                         out.write(str);
                         out.close();
-                        bottomInfo.setText(calYear+((calMonth+1)<10?"0":"")+(calMonth+1)+(calDayOfMon<10?"0":"")+calDayOfMon+".txt"+SaveButMsg1);
-                    }
-                    else
+                        bottomInfo.setText(calYear + ((calMonth + 1) < 10 ? "0" : "") + (calMonth + 1) + (calDayOfMon < 10 ? "0" : "") + calDayOfMon + ".txt" + SaveButMsg1);
+                    } else
                         bottomInfo.setText(SaveButMsg2);
                 } catch (IOException e) {
                     bottomInfo.setText(SaveButMsg3);
@@ -268,21 +274,20 @@ public class MemoCalendar extends CalendarDataManager{ // CalendarDataManager의
             }
         });
         delBut = new JButton("삭제");
-        delBut.addActionListener(new ActionListener(){
+        delBut.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 memoArea.setText("");
-                File f =new File("MemoData/"+calYear+((calMonth+1)<10?"0":"")+(calMonth+1)+(calDayOfMon<10?"0":"")+calDayOfMon+".txt");
-                if(f.exists()){
+                File f = new File("MemoData/" + calYear + ((calMonth + 1) < 10 ? "0" : "") + (calMonth + 1) + (calDayOfMon < 10 ? "0" : "") + calDayOfMon + ".txt");
+                if (f.exists()) {
                     f.delete();
                     showCal();
                     bottomInfo.setText(DelButMsg1);
-                }
-                else
+                } else
                     bottomInfo.setText(DelButMsg2);
             }
         });
         clearBut = new JButton("초기화");
-        clearBut.addActionListener(new ActionListener(){
+        clearBut.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent arg0) {
                 memoArea.setText(null);
                 bottomInfo.setText(ClrButMsg1);
@@ -293,8 +298,8 @@ public class MemoCalendar extends CalendarDataManager{ // CalendarDataManager의
         memoSubPanel.add(clearBut);
         memoPanel.setLayout(new BorderLayout());
         memoPanel.add(selectedDate, BorderLayout.NORTH);
-        memoPanel.add(memoAreaSP,BorderLayout.CENTER);
-        memoPanel.add(memoSubPanel,BorderLayout.SOUTH);
+        memoPanel.add(memoAreaSP, BorderLayout.CENTER);
+        memoPanel.add(memoSubPanel, BorderLayout.SOUTH);
 
         //calOpPanel, calPanel을  frameSubPanelWest에 배치
         JPanel frameSubPanelWest = new JPanel();
@@ -302,17 +307,17 @@ public class MemoCalendar extends CalendarDataManager{ // CalendarDataManager의
         calOpPanelSize.height = 90;
         calOpPanel.setPreferredSize(calOpPanelSize);
         frameSubPanelWest.setLayout(new BorderLayout());
-        frameSubPanelWest.add(calOpPanel,BorderLayout.NORTH);
-        frameSubPanelWest.add(calPanel,BorderLayout.CENTER);
+        frameSubPanelWest.add(calOpPanel, BorderLayout.NORTH);
+        frameSubPanelWest.add(calPanel, BorderLayout.CENTER);
 
         //infoPanel, memoPanel을  frameSubPanelEast에 배치
         JPanel frameSubPanelEast = new JPanel();
-        Dimension infoPanelSize=infoPanel.getPreferredSize();
+        Dimension infoPanelSize = infoPanel.getPreferredSize();
         infoPanelSize.height = 65;
         infoPanel.setPreferredSize(infoPanelSize);
         frameSubPanelEast.setLayout(new BorderLayout());
-        frameSubPanelEast.add(infoPanel,BorderLayout.NORTH);
-        frameSubPanelEast.add(memoPanel,BorderLayout.CENTER);
+        frameSubPanelEast.add(infoPanel, BorderLayout.NORTH);
+        frameSubPanelEast.add(memoPanel, BorderLayout.CENTER);
 
         Dimension frameSubPanelWestSize = frameSubPanelWest.getPreferredSize();
         frameSubPanelWestSize.width = 410;
@@ -331,8 +336,57 @@ public class MemoCalendar extends CalendarDataManager{ // CalendarDataManager의
 
         focusToday(); //현재 날짜에 focus를 줌 (mainFrame.setVisible(true) 이후에 배치해야함)
 
+        Runnable runnable = new Runnable() {
+            int result=0;
+            @Override
+            public void run() {
+                    AlarmProgramGUI();
+                }
 
+        };
+        ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+        service.scheduleAtFixedRate(runnable, 0, 1, TimeUnit.MINUTES);
     }
+
+    private void AlarmProgramGUI() {
+        String memoDataFolderPath = "MemoData";
+
+        // 현재 날짜 및 시간 가져오기
+        LocalDate currentDate = LocalDate.now();
+        LocalTime currentTime = LocalTime.now();
+
+        // YYYYMMDD 형식의 날짜로 변환
+        String formattedDate = currentDate.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+        // 폴더 경로 생성
+        String folderPath = memoDataFolderPath + File.separator + formattedDate;
+
+        File folder = new File(folderPath);
+
+        File[] files = folder.listFiles();
+
+        for (File file : files) {
+            if (file.isFile() && file.getName().endsWith(".txt")) {
+                String fileName = file.getName().replace(".txt", "");
+                String[] timeParts = fileName.split("-");
+
+                String startTime = timeParts[0];
+
+                String[] startParts = startTime.split("_");
+
+                int startHour = Integer.parseInt(startParts[0]);
+                int startMinute = Integer.parseInt(startParts[1]);
+
+                LocalTime fileStartTime = LocalTime.of(startHour, startMinute);
+
+                if (currentTime.getHour() == fileStartTime.getHour() && currentTime.getMinute() == fileStartTime.getMinute()) {
+                    String message = fileName + " 파일이름의 메모가 해당 시간입니다.";
+                    JOptionPane.showMessageDialog(null, message, "알림", JOptionPane.INFORMATION_MESSAGE);
+                }
+            }
+        }
+    }
+
     private void focusToday(){
         if(today.get(Calendar.DAY_OF_WEEK) == 1)
             dateButs[today.get(Calendar.WEEK_OF_MONTH)][today.get(Calendar.DAY_OF_WEEK)-1].requestFocusInWindow();
