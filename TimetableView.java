@@ -198,8 +198,7 @@ public class TimetableView extends JPanel {
                     }
                 }
 
-                lblTitle.setText(MonthOfToday + "월 " + todayWeekOfDay + "째주");//TitlePanel 다시 새기기 - 
-                drawTimetable();
+               
             }
         });
         titlePanel.add(lWeekBut, BorderLayout.WEST);
